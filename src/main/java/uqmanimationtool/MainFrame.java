@@ -87,7 +87,7 @@ public class MainFrame extends javax.swing.JFrame {
     Settings settings;
     Integer animationTo = null;
     int animPass = 0;
-    private static Pattern extframePattern = Pattern.compile("\\[.*\\]");
+    private static final Pattern extframePattern = Pattern.compile("\\[.*\\]");
     private AnimationStructureTableModel aniTableModel;
 
     private void parseExtline(String extline, StringBuilder sb) throws NumberFormatException {
@@ -130,7 +130,7 @@ public class MainFrame extends javax.swing.JFrame {
                         ani.setName(fSource);
                     }
                 } else {
-                    sb.append("Too few arguments to anidef at " + extline + "\n");
+                    sb.append("Too few arguments to anidef at ").append(extline).append("\n");
                 }
             }
 
@@ -159,7 +159,7 @@ public class MainFrame extends javax.swing.JFrame {
                                 }
                             }
                             if (!found) {
-                                sb.append("Nothing found for " + fSource + "\n");
+                                sb.append("Nothing found for ").append(fSource).append("\n");
                                 //something is wrong, couldn't find aniframe declaration in list of frames (it's assigned to an animation, but not declared as a frame to UQM)
                                 //TODO: determine behaviour (add it in anyways, OR ignore it?)
                             }
@@ -169,10 +169,10 @@ public class MainFrame extends javax.swing.JFrame {
                             //something is wrong, couldn't find aniframe declaration
                         }
                     } else {
-                        sb.append("Animation with index " + aniID + " not found. Has it been declared previously?\n");
+                        sb.append("Animation with index ").append(aniID).append(" not found. Has it been declared previously?\n");
                     }
                 } else {
-                    sb.append("Too few arguments to aniframe at " + extline + "\n");
+                    sb.append("Too few arguments to aniframe at ").append(extline).append("\n");
                 }
             }
         }
@@ -415,9 +415,9 @@ public class MainFrame extends javax.swing.JFrame {
             for (int i = 0; i < animationSystem.animations.size(); i++) {
                 Animation ani = animationSystem.animations.get(i);
                 if (ani.aniType == AnimationType.BACKGROUND) {
-                    for (AnimationFrame af : ani.frames) {
+                    ani.frames.forEach(af -> {
                         af.duration = -1d;
-                    }
+                    });
                 }
                 fw.write("#@ anidef " + i + " " + ani.aniType + " [" + ani.getName() + "]\n");
             }
@@ -545,7 +545,7 @@ public class MainFrame extends javax.swing.JFrame {
                 int modelRow = Integer.valueOf(e.getActionCommand());
                 if (modelRow >= 0) {
                     Animation a = animationSystem.animations.get(modelRow);
-                    a.setIsPlaying((a.playingState == 0 ? true : false));
+                    a.setIsPlaying((a.playingState == 0));
                 }
             }
         }, 0);
@@ -597,9 +597,7 @@ public class MainFrame extends javax.swing.JFrame {
             parseFile(editingFile);
         } catch (FileNotFoundException ex) {
             Logger.getLogger(MainFrame.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (IOException ex) {
-            Logger.getLogger(MainFrame.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (NoSuchAlgorithmException ex) {
+        } catch (IOException | NoSuchAlgorithmException ex) {
             Logger.getLogger(MainFrame.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
@@ -634,7 +632,7 @@ public class MainFrame extends javax.swing.JFrame {
         int lnr = 0;
         boolean negativeFound = false;
         StringBuilder sb = new StringBuilder();
-        ArrayList<String> anitool_extension_lines = new ArrayList<String>();
+        ArrayList<String> anitool_extension_lines = new ArrayList<>();
         while (br.ready()) {
             lnr++;
             String line = br.readLine();
@@ -648,14 +646,14 @@ public class MainFrame extends javax.swing.JFrame {
                     sb.append("ArrayIndexOutOfBoundException occured. This probably means your .ani file is bugged. Ignoring this line (Line Number: ").append(lnr).append("). Line: [").append(line).append("]. Exception message: ").append(ae.getMessage()).append("\n");
                 } catch (IIOException ie) {
                     sb.append("ImageIOException occured. Ignoring this line (Line Number: ").append(lnr).append("): [").append(line).append("] Message: ").append(ie.getMessage()).append("\n");
-                } catch (Exception e) {
+                } catch (IOException | NoSuchAlgorithmException e) {
                     sb.append("Ignoring this line (Line Number: ").append(lnr).append("): [").append(line).append("] Message: ").append(e.getMessage()).append("\n");
                 }
             } else if (line.startsWith("#@")) { //UQMAnimatonTool extension line
                 anitool_extension_lines.add(line); //Add it for parsing later
             }
         }
-        for (String extline : anitool_extension_lines) {
+        anitool_extension_lines.forEach(extline -> {
             try {
                 parseExtline(extline, sb); //parse extension lines
             } catch (NumberFormatException ne) {
@@ -665,7 +663,7 @@ public class MainFrame extends javax.swing.JFrame {
             } catch (Exception e) {
                 sb.append("Ignoring this line: ").append(" [").append(extline).append("] Message: [").append(e.getMessage()).append("] Exception: [").append(e).append("] ").append("\n");
             }
-        }
+        });
         if (sb.length() > 0) {
             TextDialog td = new TextDialog(sb.toString(), "Errors occured while parsing the input file");
             td.setVisible(true);
@@ -1353,9 +1351,10 @@ public class MainFrame extends javax.swing.JFrame {
             jLabel1.setText("Layout mode");
         } else {
             jLabel1.setText("Animation mode");
-            for (Animation a : animationSystem.animations) { //Reset all animation timers
+            animationSystem.animations.forEach(a -> {
+                //Reset all animation timers
                 a.resetTimer();
-            }
+            });
             for (int i = 0; i < animationSystem.frames.size(); i++) { //Fix the z-indexes
                 jPanel_ImageWorkspace.setComponentZOrder(animationSystem.frames.get(i), animationSystem.frames.size() - i);
             }
@@ -1366,9 +1365,9 @@ public class MainFrame extends javax.swing.JFrame {
                 @Override
                 public void run() {
                     try {
-                        for (Animation a : animationSystem.animations) {
+                        animationSystem.animations.forEach(a -> {
                             a.processAnimationDelta();
-                        }
+                        });
                         repaintFrames();
                     } catch (IllegalArgumentException ex) {
                         Logger.getLogger(MainFrame.class.getName()).log(Level.SEVERE, null, ex);
@@ -1800,18 +1799,25 @@ public class MainFrame extends javax.swing.JFrame {
             try {
                 for (int j = 0; j < animationSystem.size(); j++) {
                     ImagePanel i = (ImagePanel) animationSystem.get(j);
-                    if (jComboBox_Tranparency.getSelectedIndex() == 0) {
-                        i.setTransparency(1f);
-                        i.setHighlight(1f);
-                    } else if (jComboBox_Tranparency.getSelectedIndex() == 1) {
-                        i.setTransparency(1f);
-                        i.setHighlight(1f);
-                    } else if (jComboBox_Tranparency.getSelectedIndex() == 2) {
-                        i.setTransparency(0.5f);
-                        i.setHighlight(0.5f);
-                    } else if (jComboBox_Tranparency.getSelectedIndex() == 3) {
-                        i.setTransparency(0.25f);
-                        i.setHighlight(0.25f);
+                    switch (jComboBox_Tranparency.getSelectedIndex()) {
+                        case 0:
+                            i.setTransparency(1f);
+                            i.setHighlight(1f);
+                            break;
+                        case 1:
+                            i.setTransparency(1f);
+                            i.setHighlight(1f);
+                            break;
+                        case 2:
+                            i.setTransparency(0.5f);
+                            i.setHighlight(0.5f);
+                            break;
+                        case 3:
+                            i.setTransparency(0.25f);
+                            i.setHighlight(0.25f);
+                            break;
+                        default:
+                            break;
                     }
                 }
                 if (jList_Frames.getSelectedIndex() != -1) {
@@ -1827,14 +1833,21 @@ public class MainFrame extends javax.swing.JFrame {
                             jPanel_ImageWorkspace.setComponentZOrder(getSelectedImagePanel(), 0);
                             getSelectedImagePanel().setVisible(true);
 
-                            if (jComboBox_Tranparency.getSelectedIndex() == 0) {
-                                getSelectedImagePanel().setTransparency(1f);
-                            } else if (jComboBox_Tranparency.getSelectedIndex() == 1) {
-                                getSelectedImagePanel().setTransparency(0.5f);
-                            } else if (jComboBox_Tranparency.getSelectedIndex() == 2) {
-                                getSelectedImagePanel().setTransparency(1f);
-                            } else if (jComboBox_Tranparency.getSelectedIndex() == 3) {
-                                getSelectedImagePanel().setTransparency(0.5f);
+                            switch (jComboBox_Tranparency.getSelectedIndex()) {
+                                case 0:
+                                    getSelectedImagePanel().setTransparency(1f);
+                                    break;
+                                case 1:
+                                    getSelectedImagePanel().setTransparency(0.5f);
+                                    break;
+                                case 2:
+                                    getSelectedImagePanel().setTransparency(1f);
+                                    break;
+                                case 3:
+                                    getSelectedImagePanel().setTransparency(0.5f);
+                                    break;
+                                default:
+                                    break;
                             }
                             if (jCheckBoxMenuItem_HighlightFrame.isSelected()) {
                                 getSelectedImagePanel().setHighlight(2f);
@@ -1897,11 +1910,7 @@ public class MainFrame extends javax.swing.JFrame {
 
         @Override
         public boolean isCellEditable(int rowIndex, int columnIndex) {
-            if (columnIndex == 0) {
-                return true;
-            } else {
-                return false;
-            }
+            return columnIndex == 0;
         }
 
         @Override
@@ -1949,12 +1958,13 @@ public class MainFrame extends javax.swing.JFrame {
                     return "?UNDEFINED_COLUMN?"; //This should never happen as those columns don't exist.
                 }
             } else {
-                if (columnIndex == 0) {
-                    return a.frames.get(rowIndex).duration;
-                } else if (columnIndex == 1) {
-                    return a.frames.get(rowIndex).frame;
-                } else {
-                    return "?UNDEFINED_COLUMN?"; //This should never happen as those columns don't exist.
+                switch (columnIndex) {
+                    case 0:
+                        return a.frames.get(rowIndex).duration;
+                    case 1:
+                        return a.frames.get(rowIndex).frame;
+                    default:
+                        return "?UNDEFINED_COLUMN?"; //This should never happen as those columns don't exist.
                 }
             }
         }
@@ -1982,11 +1992,7 @@ public class MainFrame extends javax.swing.JFrame {
             if (a.aniType == AnimationType.BACKGROUND) {
                 return false;
             } else {
-                if (columnIndex == 0) {
-                    return true;
-                } else {
-                    return false;
-                }
+                return columnIndex == 0;
             }
         }
 
@@ -1996,7 +2002,7 @@ public class MainFrame extends javax.swing.JFrame {
             if (columnIndex == 0) {
                 try {
                     a.frames.get(rowIndex).setDuration(Double.valueOf((String) aValue));
-                } catch (Exception e) {
+                } catch (NumberFormatException e) {
                     JOptionPane.showMessageDialog(rootPane, "Invalid value specified. Exception: " + e);
                 }
             }
