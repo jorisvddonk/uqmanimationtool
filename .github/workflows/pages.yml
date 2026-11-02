@@ -28,8 +28,16 @@ jobs:
         with:
           node-version: 22
 
+      - name: Install TZO VM test dependency
+        working-directory: tests
+        run: npm ci
+
       - name: Run parser/writer tests
         working-directory: web
+        run: npm test
+
+      - name: Run TZO exporter tests on the reference VM
+        working-directory: tests
         run: npm test
 
   deploy:

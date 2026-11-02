@@ -556,6 +556,78 @@ async function main() {
             JSON.stringify(synthetic));
 
         /* ------------------------------------------------------------ */
+        /* TZO export                                                    */
+        /* ------------------------------------------------------------ */
+        await evaluate(`(async () => {
+            await window.uqmaniApp.openExample('chmmr');
+            return true;
+        })()`);
+
+        const tzo = await evaluate(`(async () => {
+            const { generateTzoProgram } = await import(new URL('js/tzo.js', document.baseURI).href);
+            const app = window.uqmaniApp;
+            const exported = generateTzoProgram(app.system, { pathPrefix: 'base/comm/chmmr/', fps: 30 });
+            const state = exported.state;
+            const loopStart = state.labelMap.mainAnimationLoop;
+            const names = state.programList
+                .filter((instruction) => instruction.type === 'invoke-function-instruction')
+                .map((instruction) => instruction.functionName);
+            return {
+                textures: exported.textures.length,
+                instructions: state.programList.length,
+                loopStart,
+                loopIsNop: state.programList[loopStart].functionName === 'nop',
+                loadImages: names.filter((name) => name === 'loadImage').length,
+                drawFrames: names.filter((name) => name === 'drawFrame').length,
+                firstPath: exported.textures[0].path,
+                firstHotspot: [exported.textures[1].frame.xoff, exported.textures[1].frame.yoff],
+                lastIsGoto: names[names.length - 1] === 'goto',
+                jsonBytes: JSON.stringify(state).length,
+                warnings: exported.warnings,
+            };
+        })()`);
+        check('TZO export produces a loadable program for the example',
+            tzo.textures === 85
+            && tzo.loadImages === 85
+            && tzo.loopIsNop === true
+            && tzo.firstPath === 'base/comm/chmmr/chmmr.0.png'
+            && tzo.lastIsGoto === true
+            && tzo.warnings.length === 0,
+            JSON.stringify({ textures: tzo.textures, loadImages: tzo.loadImages, instructions: tzo.instructions, loopStart: tzo.loopStart }));
+        check('TZO export draws frames and serialises to JSON',
+            tzo.drawFrames === 84 && tzo.jsonBytes > 10000,
+            JSON.stringify({ drawFrames: tzo.drawFrames, bytes: tzo.jsonBytes }));
+
+        const tzoDialog = await evaluate(`(async () => {
+            document.querySelector('[data-action="export-tzo"]').click();
+            await new Promise((resolve) => setTimeout(resolve, 250));
+            const dialog = document.querySelector('dialog.dialog-form');
+            if (!dialog) {
+                return { open: false };
+            }
+            const labels = [...dialog.querySelectorAll('.field > span, label.checkbox')]
+                .map((element) => element.textContent.trim());
+            const prefixInput = dialog.querySelector('input[type="text"]');
+            const info = {
+                open: dialog.open,
+                title: dialog.querySelector('.dialog-title').textContent,
+                labels,
+                prefix: prefixInput ? prefixInput.value : null,
+                numbers: [...dialog.querySelectorAll('input[type="number"]')].map((input) => input.value),
+            };
+            const cancel = [...dialog.querySelectorAll('.dialog-footer .btn')].find((button) => !button.classList.contains('btn-primary'));
+            cancel.click();
+            return info;
+        })()`);
+        check('TZO export dialog exposes prefix/fps/options and cancels cleanly',
+            tzoDialog.open === true
+            && tzoDialog.title === 'Export TZO animation'
+            && tzoDialog.prefix === 'base/comm/chmmr/'
+            && tzoDialog.numbers[0] === '30'
+            && tzoDialog.labels.length >= 4,
+            JSON.stringify(tzoDialog));
+
+        /* ------------------------------------------------------------ */
         /* Screenshots                                                   */
         /* ------------------------------------------------------------ */
         if (screenshotDir) {
@@ -576,6 +648,23 @@ async function main() {
             })()`);
             await sleep(500);
             await capture('app-light.png');
+
+            await evaluate(`(async () => {
+                document.querySelector('[data-action="export-tzo"]').click();
+                await new Promise((resolve) => setTimeout(resolve, 300));
+                return true;
+            })()`);
+            await capture('app-tzo-export.png');
+            await evaluate(`(() => {
+                const dialog = document.querySelector('dialog.dialog-form');
+                if (dialog) {
+                    const cancel = [...dialog.querySelectorAll('.dialog-footer .btn')]
+                        .find((button) => !button.classList.contains('btn-primary'));
+                    cancel.click();
+                }
+                return true;
+            })()`);
+            await sleep(200);
 
             await evaluate('window.uqmaniApp.setTheme("dark")');
             await sleep(300);

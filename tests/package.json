@@ -1,0 +1,13 @@
+{
+  "name": "uqmanimationtool-tzo-tests",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Runs exported TZO animation programs on the reference TZO VM",
+  "scripts": {
+    "test": "node --test tzo.test.js"
+  },
+  "devDependencies": {
+    "tzo": "1.0.20"
+  }
+}

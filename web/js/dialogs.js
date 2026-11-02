@@ -216,6 +216,99 @@ export function chooseDialog({ title = 'Choose', message = '', options = [] } = 
     });
 }
 
+/**
+ * Generic form dialog (text / number / checkbox fields).
+ * Resolves to an object of values, or null when cancelled.
+ */
+export function formDialog({
+    title = 'Options',
+    description = '',
+    fields = [],
+    submitLabel = 'OK',
+    cancelLabel = 'Cancel',
+} = {}) {
+    return new Promise((resolve) => {
+        const { dialog, body, footer, close } = buildDialog({ title, className: 'dialog-form' });
+
+        if (description) {
+            const paragraph = document.createElement('p');
+            paragraph.className = 'dialog-message';
+            paragraph.textContent = description;
+            body.appendChild(paragraph);
+        }
+
+        const inputs = new Map();
+
+        for (const field of fields) {
+            if (field.type === 'checkbox') {
+                const label = document.createElement('label');
+                label.className = 'checkbox';
+                const input = document.createElement('input');
+                input.type = 'checkbox';
+                input.checked = Boolean(field.value);
+                label.append(input, document.createTextNode(field.label));
+                body.appendChild(label);
+                inputs.set(field.name, { input, field });
+                continue;
+            }
+
+            const label = document.createElement('label');
+            label.className = 'field';
+            const caption = document.createElement('span');
+            caption.textContent = field.label;
+            const input = document.createElement('input');
+            input.type = field.type === 'number' ? 'number' : 'text';
+            input.value = field.value ?? '';
+            if (field.placeholder) {
+                input.placeholder = field.placeholder;
+            }
+            if (field.type === 'number') {
+                input.step = field.step ?? '1';
+                if (field.min !== undefined) {
+                    input.min = String(field.min);
+                }
+            }
+            label.append(caption, input);
+            if (field.help) {
+                const help = document.createElement('small');
+                help.className = 'field-help';
+                help.textContent = field.help;
+                label.appendChild(help);
+            }
+            body.appendChild(label);
+            inputs.set(field.name, { input, field });
+        }
+
+        let result = null;
+        const accept = () => {
+            const values = {};
+            for (const [name, { input, field }] of inputs) {
+                if (field.type === 'checkbox') {
+                    values[name] = input.checked;
+                } else if (field.type === 'number') {
+                    const value = Number(input.value);
+                    values[name] = Number.isFinite(value) ? value : Number(field.value) || 0;
+                } else {
+                    values[name] = input.value;
+                }
+            }
+            result = values;
+            close();
+        };
+
+        addButton(footer, cancelLabel, { onClick: () => { result = null; close(); } });
+        addButton(footer, submitLabel, { primary: true, onClick: accept });
+
+        dialog.addEventListener('close', () => resolve(result), { once: true });
+        dialog.showModal();
+        const firstInput = body.querySelector('input');
+        if (firstInput) {
+            firstInput.focus();
+            firstInput.select();
+        }
+    });
+}
+
 /** Small colour picker (JColorChooser replacement). Resolves to "#rrggbb" or null. */
 export function colorDialog({ title = 'Choose a color', value = '#ff0000' } = {}) {
     return new Promise((resolve) => {

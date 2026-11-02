@@ -1112,6 +1112,17 @@ input[type="range"]::-moz-range-thumb {
     padding: 4px 6px;
 }
 
+.field-help {
+    font-size: 11px;
+    line-height: 1.35;
+    color: var(--text-dim);
+}
+
+.dialog-form .field,
+.dialog-form .checkbox {
+    max-width: 560px;
+}
+
 .checkbox {
     display: inline-flex;
     align-items: center;

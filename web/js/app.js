@@ -17,11 +17,13 @@ import {
 } from './model.js';
 import { parseAni } from './parser.js';
 import { generateSmil, serializeAni } from './writer.js';
+import { generateTzoProgram, TZO_DEFAULT_FPS } from './tzo.js';
 import * as files from './files.js';
 import {
     chooseDialog,
     colorDialog,
     confirmDialog,
+    formDialog,
     isDialogOpen,
     promptDialog,
     showTextDialog,
@@ -55,6 +57,15 @@ HELP:
   works in UQMAnimationTool, this does not guarantee that it also works in UQM
   itself (code, etc). Alignment should mostly work allright though.
 - The Hotspot color does not have an Alpha value.
+
+Tools:
+- "Export SMIL file" writes a SMIL 3.0 slideshow of the animations.
+- "Export TZO animation (.json)" writes a TZO program for tzo-c's anim.c: the
+  program loads every frame with loadImage(hotspotY, hotspotX, path) and plays
+  the animations through the anim_anim_<i>_index / _active / _yy_direction /
+  _tick context keys, drawing with beginDraw/drawFrame/endDraw. Frame durations
+  are converted to host iterations using the configured frames-per-second
+  (anim.c runs the VM ~30 times per second).
 
 Files:
 - "Open folder" reads the .ani file plus all images in that folder and saves
@@ -227,6 +238,7 @@ class App {
             highlightSelected: false,
             hotspotColor: '#ff0000',
             theme: null,
+            tzo: null,
         };
         try {
             const stored = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
@@ -676,6 +688,9 @@ class App {
                 break;
             case 'export-smil':
                 await this.exportSmil();
+                break;
+            case 'export-tzo':
+                await this.exportTzo();
                 break;
             case 'toggle-only-selected':
                 this.showOnlySelected = !this.showOnlySelected;
@@ -1305,6 +1320,125 @@ class App {
         const name = `${files.baseNameWithoutExtension(this.project.aniFileName || 'animation')}.smil`;
         files.downloadText(smil, name, 'application/smil');
         toast(`Exported ${name}`, { type: 'success' });
+    }
+
+    /**
+     * Export the animations as a TZO program for tzo-c's anim.c: loadImage /
+     * beginDraw / endDraw / drawFrame foreign functions plus the
+     * anim_anim_<i>_* context keys.
+     */
+    async exportTzo() {
+        if (this.system.frames.length === 0) {
+            toast('Load a project first.', { type: 'error' });
+            return;
+        }
+
+        const stored = this.settings.tzo || {};
+        const canWriteToFolder = Boolean(this.project.dirHandle) && files.supportsFileSystemAccess;
+        const defaultPrefix = stored.pathPrefix !== undefined
+            ? stored.pathPrefix
+            : `base/comm/${files.baseNameWithoutExtension(this.project.aniFileName || 'animation')}/`;
+
+        const fields = [
+            {
+                name: 'pathPrefix',
+                label: 'Image path prefix',
+                type: 'text',
+                value: defaultPrefix,
+                placeholder: 'e.g. base/comm/chmmr/',
+                help: 'Prepended to every image filename in the loadImage calls (paths are resolved by PHYSFS in tzo-c).',
+            },
+            {
+                name: 'fps',
+                label: 'Host iterations per second',
+                type: 'number',
+                value: stored.fps ?? TZO_DEFAULT_FPS,
+                min: 1,
+                step: 1,
+                help: 'anim.c runs the VM about 30 times per second; frame durations are converted into iterations.',
+            },
+            {
+                name: 'startPlaying',
+                label: 'Start all animations immediately',
+                type: 'checkbox',
+                value: stored.startPlaying !== false,
+            },
+            {
+                name: 'dedupe',
+                label: 'Reuse textures for identical frames',
+                type: 'checkbox',
+                value: stored.dedupe !== false,
+            },
+        ];
+        if (canWriteToFolder) {
+            fields.push({
+                name: 'saveToFolder',
+                label: `Also save the .json into the project folder (${this.project.dirHandle.name})`,
+                type: 'checkbox',
+                value: stored.saveToFolder !== false,
+            });
+        }
+
+        const values = await formDialog({
+            title: 'Export TZO animation',
+            description: 'Generates a TZO program (JSON) that plays these animations with the animation '
+                + 'extension used by tzo-c\'s anim.c (loadImage / beginDraw / endDraw / drawFrame and the '
+                + 'anim_anim_<i>_index / _active / _yy_direction context keys).',
+            fields,
+            submitLabel: 'Export',
+        });
+        if (!values) {
+            return;
+        }
+
+        this.settings.tzo = {
+            pathPrefix: values.pathPrefix,
+            fps: values.fps,
+            startPlaying: values.startPlaying,
+            dedupe: values.dedupe,
+            saveToFolder: values.saveToFolder,
+        };
+        this.saveSettings();
+
+        const exported = generateTzoProgram(this.system, {
+            pathPrefix: values.pathPrefix,
+            fps: values.fps,
+            startPlaying: values.startPlaying,
+            dedupe: values.dedupe,
+        });
+        const json = JSON.stringify(exported.state, null, 2);
+        const name = `${files.baseNameWithoutExtension(this.project.aniFileName || 'animation')}.json`;
+
+        let saved = false;
+        if (values.saveToFolder && this.project.dirHandle) {
+            try {
+                const handle = await this.project.dirHandle.getFileHandle(name, { create: true });
+                if (await files.ensureWritePermission(handle)) {
+                    await files.writeTextToHandle(handle, json);
+                    saved = true;
+                    toast(`Saved ${name} into ${this.project.dirHandle.name}`, { type: 'success' });
+                }
+            } catch (error) {
+                console.warn('Could not write the TZO program into the project folder', error);
+            }
+        }
+        if (!saved) {
+            files.downloadText(json, name, 'application/json');
+            toast(
+                `Exported ${name} — ${exported.stats.instructions} instructions, `
+                + `${exported.stats.textures} textures, ${exported.stats.animations} animations`,
+                { type: 'success' },
+            );
+        }
+
+        if (exported.warnings.length > 0) {
+            await showTextDialog({
+                title: 'TZO export warnings',
+                text: exported.warnings.join('\n\n'),
+                wrap: true,
+                width: 720,
+            });
+        }
     }
 
     async pickHotspotColor() {
