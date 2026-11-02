@@ -409,7 +409,7 @@ async function main() {
         /* Serialisation + zip round trip                                */
         /* ------------------------------------------------------------ */
         const serialized = await evaluate(`(async () => {
-            const { serializeAni } = await import('/js/writer.js');
+            const { serializeAni } = await import(new URL('js/writer.js', document.baseURI).href);
             const app = window.uqmaniApp;
             const text = serializeAni(app.system);
             const lines = text.trimEnd().split('\\n');
@@ -425,8 +425,8 @@ async function main() {
             JSON.stringify(serialized));
 
         const zip = await evaluate(`(async () => {
-            const { serializeAni } = await import('/js/writer.js');
-            const fileHelpers = await import('/js/files.js');
+            const { serializeAni } = await import(new URL('js/writer.js', document.baseURI).href);
+            const fileHelpers = await import(new URL('js/files.js', document.baseURI).href);
             const app = window.uqmaniApp;
             const blob = await fileHelpers.createZip(app.system, serializeAni(app.system), 'chmmr.ani');
             const bytes = new Uint8Array(await blob.arrayBuffer());
