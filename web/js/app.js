@@ -1533,10 +1533,13 @@ class App {
             element.style.height = `${height}px`;
         }
 
+        // The original generateHotspot() creates a 100x100 ARGB image but only
+        // sets the pixel at (0,0): the hotspot marker is a single UQM pixel,
+        // drawn at the current zoom factor.
         this.hotspotEl.style.left = `${centerX}px`;
         this.hotspotEl.style.top = `${centerY}px`;
-        this.hotspotEl.style.width = `${100 * zoom}px`;
-        this.hotspotEl.style.height = `${100 * zoom}px`;
+        this.hotspotEl.style.width = `${zoom}px`;
+        this.hotspotEl.style.height = `${zoom}px`;
         this.hotspotEl.style.zIndex = String(this.zOrder.length + 100);
     }
 

@@ -264,6 +264,26 @@ async function main() {
             geometry.left === `${-geometry.xoff * geometry.zoom}px` && geometry.top === `${-geometry.yoff * geometry.zoom}px`,
             JSON.stringify(geometry));
 
+        const hotspot = await evaluate(`(() => {
+            const app = window.uqmaniApp;
+            const element = app.hotspotEl;
+            return {
+                width: element.style.width,
+                height: element.style.height,
+                left: element.style.left,
+                top: element.style.top,
+                background: element.style.background,
+                visible: element.style.display !== 'none',
+            };
+        })()`);
+        check('hotspot is a single zoom-scaled pixel at the origin',
+            hotspot.width === '3px'
+            && hotspot.height === '3px'
+            && hotspot.left === '0px'
+            && hotspot.top === '0px'
+            && hotspot.visible === true,
+            JSON.stringify(hotspot));
+
         await evaluate('window.uqmaniApp.setZoom(5)');
         const zoomed = await evaluate(`(() => {
             const app = window.uqmaniApp;
@@ -271,6 +291,13 @@ async function main() {
             const element = app.frameElements.get(frame);
             return { zoom: app.zoom, width: element.style.width, height: element.style.height, label: document.getElementById('zoomLabel').textContent };
         })()`);
+        const hotspotZoomed = await evaluate(`(() => {
+            const element = window.uqmaniApp.hotspotEl;
+            return { width: element.style.width, height: element.style.height };
+        })()`);
+        check('hotspot scales with the zoom factor',
+            hotspotZoomed.width === '5px' && hotspotZoomed.height === '5px',
+            JSON.stringify(hotspotZoomed));
         check('zooming rescales images',
             zoomed.zoom === 5 && zoomed.width === '1215px' && zoomed.height === '535px',
             JSON.stringify(zoomed));

@@ -615,10 +615,13 @@ html[data-theme="dark"] .frames-list li.missing {
     position: absolute;
     left: 0;
     top: 0;
+    min-width: 1px;
+    min-height: 1px;
     background: #ff0000;
     pointer-events: none;
-    outline: 1px solid rgba(255, 255, 255, 0.65);
-    outline-offset: -1px;
+    /* a thin halo keeps the single hotspot pixel findable on dark artwork */
+    outline: 1px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
 }
 
 .workspace-empty {
