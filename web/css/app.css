@@ -1279,9 +1279,10 @@ input[type="range"]::-moz-range-thumb {
 @media (max-width: 880px) {
     .layout {
         grid-template-columns: 1fr;
-        grid-template-rows: 45vh auto auto;
+        grid-auto-rows: min-content;
+        align-content: start;
         overflow-y: auto;
-        gap: 4px;
+        gap: 6px;
     }
 
     .splitter {
@@ -1290,10 +1291,11 @@ input[type="range"]::-moz-range-thumb {
 
     .pane-center {
         order: -1;
+        height: 45vh;
     }
 
     .frames-panel {
-        min-height: 240px;
+        min-height: 260px;
     }
 
     .pane-right {
