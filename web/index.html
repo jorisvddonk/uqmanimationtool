@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>UQMAnimationTool — HTML5 port</title>
+    <meta name="description" content="Web port of the UQMAnimationTool: edit UQM .ani animation files, their frames and animation definitions in the browser.">
+    <link rel="icon" href="icons/uqmani-icon.png">
+    <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div class="app" id="app">
+
+    <!-- Window chrome -->
+    <header class="titlebar">
+        <img class="titlebar-icon" src="icons/uqmani-icon.png" alt="">
+        <span class="titlebar-title">UQMAnimationTool v0.5+aniBETA</span>
+        <span class="titlebar-sub">HTML5 port</span>
+        <span class="titlebar-spacer"></span>
+        <button class="titlebar-btn" id="themeToggle" type="button" title="Toggle dark mode">
+            <span id="themeToggleLabel">Dark mode</span>
+        </button>
+    </header>
+
+    <!-- Menu bar -->
+    <nav class="menubar" id="menubar">
+        <div class="menu">
+            <button class="menu-button" type="button" aria-haspopup="true">File</button>
+            <div class="menu-popup" role="menu">
+                <button type="button" role="menuitem" data-action="open-folder"><span>Open folder…</span><span class="accel">Ctrl+O</span></button>
+                <button type="button" role="menuitem" data-action="open-file"><span>Open .ani file…</span></button>
+                <button type="button" role="menuitem" data-action="open-zip"><span>Open .zip…</span></button>
+                <button type="button" role="menuitem" data-action="open-example"><span>Load bundled example (chmmr)</span></button>
+                <div class="menu-sep"></div>
+                <button type="button" role="menuitem" data-action="reload"><span>Reload from disk</span><span class="accel">Ctrl+Shift+O</span></button>
+                <button type="button" role="menuitem" data-action="add-images"><span>Add images as frames…</span></button>
+                <button type="button" role="menuitem" data-action="new-project"><span>New empty project</span></button>
+                <div class="menu-sep"></div>
+                <button type="button" role="menuitem" data-action="save"><span>Save</span><span class="accel">Ctrl+S</span></button>
+                <button type="button" role="menuitem" data-action="save-as"><span>Save as…</span><span class="accel">F6</span></button>
+                <button type="button" role="menuitem" data-action="download-ani"><span>Download .ani</span></button>
+                <button type="button" role="menuitem" data-action="download-zip"><span>Download project as .zip</span></button>
+                <div class="menu-sep"></div>
+                <button type="button" role="menuitem" data-action="export-smil"><span>Export SMIL file…</span></button>
+            </div>
+        </div>
+
+        <div class="menu">
+            <button class="menu-button" type="button" aria-haspopup="true">Display</button>
+            <div class="menu-popup" role="menu">
+                <button type="button" role="menuitemcheckbox" data-action="toggle-only-selected" aria-checked="false"><span>Show only selected frame</span></button>
+                <button type="button" role="menuitemcheckbox" data-action="toggle-hotspot" aria-checked="true"><span>Show hotspot</span></button>
+                <button type="button" role="menuitemcheckbox" data-action="toggle-highlight" aria-checked="false"><span>Highlight selected frame</span></button>
+                <div class="menu-sep"></div>
+                <button type="button" role="menuitem" data-action="center-view"><span>Center view</span></button>
+                <button type="button" role="menuitem" data-action="zoom-in"><span>Zoom in</span><span class="accel">+</span></button>
+                <button type="button" role="menuitem" data-action="zoom-out"><span>Zoom out</span><span class="accel">-</span></button>
+                <div class="menu-sep"></div>
+                <button type="button" role="menuitemcheckbox" data-action="toggle-theme" aria-checked="false"><span>Dark mode</span></button>
+            </div>
+        </div>
+
+        <div class="menu">
+            <button class="menu-button" type="button" aria-haspopup="true">Tools (BETA)</button>
+            <div class="menu-popup" role="menu">
+                <button type="button" role="menuitem" data-action="export-smil"><span>Export SMIL file…</span></button>
+                <button type="button" role="menuitem" data-action="hotspot-color"><span>Set hotspot colour…</span></button>
+            </div>
+        </div>
+
+        <div class="menu">
+            <button class="menu-button" type="button" aria-haspopup="true">Help</button>
+            <div class="menu-popup" role="menu">
+                <button type="button" role="menuitem" data-action="help"><span>Help &amp; About</span></button>
+                <button type="button" role="menuitem" data-action="extension-specs"><span>.ani extension specifications</span></button>
+                <button type="button" role="menuitem" data-action="license"><span>License information</span></button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+        <button class="tool" type="button" data-action="open-file" title="Open file (Ctrl+O)">
+            <img src="icons/document-open.png" alt=""><span class="tool-label">Open</span>
+        </button>
+        <button class="tool" type="button" data-action="save" title="Save file (Ctrl+S)">
+            <img src="icons/document-save.png" alt=""><span class="tool-label">Save</span>
+        </button>
+        <span class="tool-sep"></span>
+        <button class="tool" type="button" data-action="hotspot-color" title="Set the colour of the hotspot pixel">
+            <img src="icons/applications-graphics.png" alt=""><span class="tool-label">Set Hotspot color</span>
+        </button>
+        <span class="tool-sep"></span>
+        <button class="tool" type="button" data-action="set-xy" title="Set the X/Y offset for all selected frames">
+            <img src="icons/applications-accessories.png" alt=""><span class="tool-label">Set x/y for selected frames</span>
+        </button>
+        <span class="toolbar-spacer"></span>
+        <span class="toolbar-hint" id="toolbarHint">No project loaded</span>
+    </div>
+
+    <!-- Main layout -->
+    <main class="layout" id="layout">
+
+        <section class="pane pane-left">
+            <div class="panel frames-panel">
+                <div class="panel-header">
+                    <span>Frames</span>
+                    <span class="panel-badge" id="frameCount">0</span>
+                </div>
+                <ul class="frames-list" id="framesList" tabindex="0" aria-label="Frames in this animation file"></ul>
+            </div>
+
+            <div class="panel side-tabs">
+                <div class="tabstrip" role="tablist">
+                    <button class="tab tab-icon active" type="button" data-side-tab="anim-settings" role="tab" aria-selected="true" title="Animation settings">
+                        <img src="icons/preferences-desktop.png" alt="">
+                    </button>
+                    <button class="tab tab-icon" type="button" data-side-tab="transparency" role="tab" aria-selected="false" title="Transparency helper settings">
+                        <img src="icons/applications-other.png" alt="">
+                    </button>
+                </div>
+                <div class="tabpanel active" data-side-panel="anim-settings" role="tabpanel">
+                    <label class="slider-label" id="zoomLabel" for="zoomSlider">Zoom: 3</label>
+                    <input type="range" id="zoomSlider" min="1" max="10" step="1" value="3" aria-label="Zoom">
+                </div>
+                <div class="tabpanel" data-side-panel="transparency" role="tabpanel">
+                    <select id="transparencySelect" aria-label="Transparency helper">
+                        <option value="0">Don't use any transparency helpers</option>
+                        <option value="1">Show selected frame transparently</option>
+                        <option value="2">Show non-selected frames transparently</option>
+                        <option value="3">Mixed transparencies for selected/non-selected</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        <div class="splitter" id="splitterLeft" role="separator" aria-orientation="vertical" tabindex="0" aria-label="Resize frame list"></div>
+
+        <section class="pane pane-center">
+            <div class="workspace" id="workspace" tabindex="0">
+                <div class="frames-layer" id="framesLayer"></div>
+                <div class="workspace-empty" id="workspaceEmpty">
+                    <img src="icons/uqmani-icon.png" alt="" class="workspace-empty-icon">
+                    <p class="workspace-empty-title">No project loaded</p>
+                    <p>Drop a folder, .ani file or .zip here, or use <strong>File → Open folder…</strong></p>
+                    <div class="workspace-empty-actions">
+                        <button class="btn" type="button" data-action="open-folder">Open folder…</button>
+                        <button class="btn" type="button" data-action="open-file">Open .ani…</button>
+                        <button class="btn" type="button" data-action="open-zip">Open .zip…</button>
+                        <button class="btn" type="button" data-action="open-example">Load example</button>
+                    </div>
+                    <p class="workspace-empty-note">Frames are read from disk with the File System Access API and saved straight back to the same file when your browser supports it.</p>
+                </div>
+            </div>
+        </section>
+
+        <div class="splitter" id="splitterRight" role="separator" aria-orientation="vertical" tabindex="0" aria-label="Resize animation panel"></div>
+
+        <section class="pane pane-right">
+            <div class="tabstrip" role="tablist">
+                <button class="tab active" type="button" data-main-tab="definition" role="tab" aria-selected="true">
+                    <img src="icons/applications-system.png" alt=""><span>Animation definition</span>
+                </button>
+                <button class="tab" type="button" data-main-tab="playback" role="tab" aria-selected="false">
+                    <img src="icons/applications-multimedia.png" alt=""><span>Playback</span>
+                </button>
+            </div>
+
+            <div class="tabpanel active" data-main-panel="definition" role="tabpanel">
+                <div class="row">
+                    <select id="animSelect" class="anim-select" aria-label="Animation"></select>
+                    <button class="btn icon-btn" id="btnAnimAdd" type="button" title="New animation"><img src="icons/list-add.png" alt="Add"></button>
+                    <button class="btn icon-btn" id="btnAnimRemove" type="button" title="Remove animation"><img src="icons/list-remove.png" alt="Remove"></button>
+                    <button class="btn" id="btnAnimRename" type="button">rename</button>
+                </div>
+                <div class="row">
+                    <select id="animTypeSelect" aria-label="Animation type"></select>
+                    <button class="btn icon-btn" id="btnAnimTypeHelp" type="button" title="Animation types help"><img src="icons/help-browser.png" alt="Help"></button>
+                </div>
+
+                <div class="table-wrap">
+                    <table class="data-table" id="animFramesTable">
+                        <thead>
+                        <tr>
+                            <th class="col-duration" id="colDuration">Duration</th>
+                            <th class="col-frame">Frame</th>
+                        </tr>
+                        </thead>
+                        <tbody id="animFramesBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="button-grid">
+                    <button class="btn" id="btnMoveUp" type="button"><img src="icons/go-up.png" alt="">Move up</button>
+                    <button class="btn" id="btnMoveDown" type="button"><img src="icons/go-down.png" alt="">Move down</button>
+                    <button class="btn" id="btnImportFrames" type="button" title="Adds the selected item(s) from the list on the left to the currently selected animation."><img src="icons/list-add.png" alt="">Import selected frame(s)</button>
+                    <button class="btn" id="btnRemoveFrames" type="button"><img src="icons/list-remove.png" alt="">Remove item(s)</button>
+                    <button class="btn btn-wide" id="btnSetDuration" type="button">Set duration for all selected</button>
+                </div>
+            </div>
+
+            <div class="tabpanel" data-main-panel="playback" role="tabpanel">
+                <div class="row">
+                    <button class="btn btn-grow" id="btnAnimSystem" type="button">
+                        <img src="icons/media-playback-start.png" alt="" id="animSystemIcon"><span id="animSystemLabel">Start/stop ani system</span>
+                    </button>
+                    <button class="btn icon-btn" id="btnPlaybackHelp" type="button" title="Playback notes"><img src="icons/help-browser.png" alt="Help"></button>
+                </div>
+                <div class="table-wrap">
+                    <table class="data-table playback-table">
+                        <thead>
+                        <tr>
+                            <th class="col-play">Play</th>
+                            <th>Animation</th>
+                        </tr>
+                        </thead>
+                        <tbody id="playbackBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Status bar -->
+    <footer class="statusbar">
+        <div class="status-cell status-file" id="statusFile" title="No file loaded">No file loaded</div>
+        <div class="status-cell status-mouse" id="statusMouse">Mouse: [x,y]</div>
+        <div class="status-cell status-mode" id="statusMode">Layout mode</div>
+    </footer>
+</div>
+
+<div class="drop-overlay" id="dropOverlay" aria-hidden="true">
+    <div class="drop-overlay-inner">Drop .ani file, images, folder or .zip</div>
+</div>
+
+<script src="js/vendor/fflate.js"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
