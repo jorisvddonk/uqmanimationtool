@@ -15,7 +15,8 @@ There are two versions in this repository:
 
 Live: **https://jorisvddonk.github.io/uqmanimationtool/**
 
-Open `index.html?example=chmmr` to start with the bundled example project.
+Open `index.html?example=chmmr` to start with the bundled example project;
+add `&theme=dark` (or `&theme=light`) to force a colour scheme.
 
 ### Features
 

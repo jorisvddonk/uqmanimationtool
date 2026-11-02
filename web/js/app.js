@@ -163,7 +163,12 @@ class App {
         this.renderAll();
         this.updateStatus();
 
+        // Optional query parameters: ?example=chmmr and ?theme=dark|light
         const params = new URLSearchParams(window.location.search);
+        const theme = params.get('theme');
+        if (theme === 'light' || theme === 'dark') {
+            this.setTheme(theme, { persist: false });
+        }
         const example = params.get('example');
         if (example) {
             this.openExample(example);
